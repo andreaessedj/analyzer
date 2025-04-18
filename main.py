@@ -4,7 +4,7 @@ import os
 import tempfile
 import requests
 import librosa
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPA_URL, SUPA_KEY)
 
 app = FastAPI()
 
-# 1) CORS Middleware standard
+# 1) CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],            # apri a tutti i domini
@@ -32,14 +32,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2) Fallback: aggiunge manualmente gli header CORS anche sulle 500
-@app.middleware("http")
-async def add_cors_header(request: Request, call_next):
-    response = await call_next(request)
-    # garantisci sempre l'header
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+# 2) Handler preflight OPTIONS per /analyze
+@app.options("/analyze")
+async def analyze_preflight():
+    return Response(status_code=200)
 
 # ─── Modello di richiesta ───────────────────────────────────────────────────
 
@@ -115,8 +111,8 @@ async def analyze(req: AnalyzeRequest):
         return {"status": "analyzed", "feedback": fb}
 
     except HTTPException:
-        # permette a FastAPI di gestire l'HTTPException con CORS
+        # Propaga gli errori HTTP con CORS corretti
         raise
     except Exception as e:
-        # intercetta ogni altro errore e restituisce JSON con CORS grazie al middleware
+        # Qualunque altro errore
         return JSONResponse(status_code=500, content={"detail": str(e)})
