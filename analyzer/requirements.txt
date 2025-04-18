@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-supabase-py
-librosa
-soundfile
-requests
