@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-supabase-py
+supabase
 librosa
 soundfile
 requests
